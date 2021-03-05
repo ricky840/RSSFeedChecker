@@ -1,0 +1,67 @@
+.rss-menu {
+	/* background: #14171a !important; */
+	box-shadow: 0 1px 5px rgba(0,0,0,.35) !important;
+	border-radius: 0rem !important;
+}
+
+.version {
+	font-size: 0.8em;
+	margin-left: 1em;	
+	margin-right: 1em;	
+}
+
+.rss-title {
+	width: 100%;
+}
+
+.content-wrapper {
+	padding-left: 1.5em;
+	padding-right: 1.5em;
+}
+.rss-items-wrapper {
+	/* padding-left: 1.5em;
+	padding-right: 1.5em; */
+}
+
+.rss-status-wrapper {
+	/* padding-left: 1.5em;
+	padding-right: 1.5em; */
+}
+
+.rss-next-run {
+	font-weight: bold;
+	text-align: center;
+	height: -webkit-fill-available;
+}
+
+.rss-last-run {
+	font-weight: bold;
+	text-align: center;
+	height: -webkit-fill-available;
+}
+
+.rss-minago {
+	text-align: center;
+	padding-top: 5%;
+}
+
+.rss-minago .label {
+	text-transform: none !important;
+}
+
+.status-msg-segment {
+	height: 100%;
+}
+
+.rss-run-start-btn {
+	margin-bottom: 10px !important;
+}
+
+.rss-description {
+	font-size: 1.1em !important;
+}
+
+.rss-extra-label {
+	width: 100px;
+	text-align: center;
+}

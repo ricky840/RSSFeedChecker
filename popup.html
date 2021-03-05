@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>RSSFeed Checker</title>
+    <link rel="stylesheet" type="text/css" href="css/semantic.css">
+		<link rel="stylesheet" type="text/css" href="css/popup.css">
+	</head>
+	<body>
+		<div class="ui fluid menu inverted rss-menu">
+			<a class="header item menu-rss" href="">
+				<h3>RSSFeed Checker<span class="version"></span></h3>
+			</a>
+			<div class="right menu">
+				<a class="item menu-rss-feeds">RSS Feeds</a>
+			</div>
+		</div>
+
+		<div class="content-wrapper">
+			<div class="rss-status-wrapper">
+				<div class="ui button primary large labeled icon rss-run-start-btn">
+					<i class="play icon"></i>Start
+				</div>
+
+				<button class="ui primary button basic right floated circular save-btn">Save</button>
+
+				<div class="ui grid">
+					<div class="row">
+						<div class="eight wide column">
+							<div class="ui segment status-msg-segment">
+								<div class="ui top attached label">RSS Fetching Status</div>
+								<div class="ui indicating progress fetch-progress-bar">
+									<div class="bar">
+										<div class="progress"></div>
+									</div>
+									<div class="label"></div>
+								</div>
+							</div>
+						</div>
+						<div class="two wide column">
+							<div class="ui segment status-msg-segment">
+								<div class="ui top attached label">Next Run</div>
+								<div class="ui message rss-next-run"></div>
+							</div>
+						</div>
+						<div class="two wide column">
+							<div class="ui segment status-msg-segment">
+								<div class="ui top attached label">Last Run</div>
+								<div class="ui message rss-last-run"></div>
+							</div>
+						</div>
+
+						<div class="two wide column">
+							<div class="ui segment status-msg-segment">
+								<div class="ui top attached label">Number of Articles to Fetch</div>
+								<div class="ui selection compact dropdown dropdown-number-of-article">
+									<input type="hidden" name="article_number">
+									<i class="dropdown icon"></i>
+									<div class="default text">Article Number</div>
+									<div class="menu">
+										<div class="item" data-value="1">1</div>
+										<div class="item" data-value="2">2</div>
+										<div class="item" data-value="3">3</div>
+										<div class="item" data-value="4">4</div>
+										<div class="item" data-value="5">5</div>
+										<div class="item" data-value="6">6</div>
+										<div class="item" data-value="7">7</div>
+										<div class="item" data-value="8">8</div>
+										<div class="item" data-value="9">9</div>
+										<div class="item" data-value="10">10</div>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						<div class="two wide column">
+							<div class="ui segment status-msg-segment">
+								<div class="ui top attached label">Sleep Duration</div>
+
+								<div class="ui selection compact dropdown dropdown-sleep-duration">
+									<input type="hidden" name="sleep-duration">
+									<i class="dropdown icon"></i>
+									<div class="default text">Sleep Duration</div>
+									<div class="menu">
+										<div class="item" data-value="3000">3s</div>
+										<div class="item" data-value="5000">5s</div>
+										<div class="item" data-value="10000">10s</div>
+										<div class="item" data-value="15000">15s</div>
+										<div class="item" data-value="20000">20s</div>
+										<div class="item" data-value="25000">25s</div>
+										<div class="item" data-value="30000">30s</div>
+										<div class="item" data-value="60000">60s</div>
+										<div class="item" data-value="120000">120s</div>
+									</div>
+								</div>
+
+							</div>
+						</div>
+
+					</div>
+				</div>
+
+			</div>
+
+			<div class="ui divider"></div>
+
+			<div class="notifications"></div>
+
+			<h3 class="ui header">Latest Articles<span class="rss-items-amount"></span></h3>
+
+			<div class="rss-items-wrapper">
+				<div class="ui divided items rss-items segment"></div>
+			</div>
+
+
+			<!-- <h3 class="ui header">Last Feeds (Showing only latest 20 items)</h3>
+
+			<div class="rss-previous-items-wrapper">
+				<div class="ui divided items rss-previous-items segment disabled"></div>
+			</div> -->
+
+		</div>
+
+		<script type="text/javascript" src="lib/jquery-3.4.1.min.js"></script>
+		<script type="text/javascript" src="lib/semantic.min.js"></script>
+		<script type="text/javascript" src="lib/lodash.js"></script>
+		<script type="text/javascript" src="lib/http.js"></script>
+
+    <script type="text/javascript" src="js/global.js"></script>
+    <script type="text/javascript" src="js/popup.js"></script>
+    <script type="text/javascript" src="js/feeds.js"></script>
+    <!-- <script type="text/javascript" src="js/messageManager.js"></script> -->
+	</body>
+</html>
