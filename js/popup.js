@@ -212,7 +212,7 @@ function createHTML(rss, content) {
 		<div class="image">
 			<div class="rss-minago">
 				<div class="ui top attached large violet label">${rss.name}</div>
-				<div class="ui small blue statistic time-diff">
+				<div class="ui small red statistic time-diff">
 					<div class="value time-value"></div>
 					<div class="label time-unit"></div>
 				</div>

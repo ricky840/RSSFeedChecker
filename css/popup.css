@@ -59,6 +59,9 @@
 
 .rss-description {
 	font-size: 1.1em !important;
+	overflow: auto;
+	max-height: 6em;
+	max-width: 100%;
 }
 
 .rss-extra-label {
