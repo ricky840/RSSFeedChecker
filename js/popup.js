@@ -455,9 +455,9 @@ async function checkRSS() {
 				} catch (error) {
 					console.log(error);
 					notificationManager.show({
-						"header": `Error fetching RSS Feed: ${rss.name}`,
+						"header": `Error fetching RSS Feed: ${rss.name} at ${getCurrentDateTime()}`,
 						"content": `${error.responseText}`
-					}, "negative", true);
+					}, "negative");
 					reject();
 				} finally {
 					sortRssList();
