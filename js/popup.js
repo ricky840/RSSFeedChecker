@@ -1,14 +1,14 @@
 $(".version").html(`v${chrome.runtime.getManifest().version}`);
 
+// Constants
 const background = chrome.extension.getBackgroundPage();
 var NUMBER_OF_RSS_CONTENT_TO_FETCH =  background.NUMBER_OF_RSS_CONTENT_TO_FETCH;
 var SLEEP_DURATION = background.SLEEP_DURATION;
+var tagify; // For keywords
 
 $(document).ready(function() {
-
-
-	// loadPreviousRss();
-
+	
+	// Dropdown: Number of articles to fetch
 	$(".dropdown-number-of-article").dropdown({
     onChange: function(value, text, selectedItem) {
 			NUMBER_OF_RSS_CONTENT_TO_FETCH = value;
@@ -16,14 +16,13 @@ $(document).ready(function() {
 	});
 	$(".dropdown-number-of-article").dropdown('set selected', NUMBER_OF_RSS_CONTENT_TO_FETCH);
 
-	// Sleep duration
+	// Dropdown: Sleep duration
 	$(".dropdown-sleep-duration").dropdown({
     onChange: function(value, text, selectedItem) {
 			SLEEP_DURATION = value;
     }
 	});
 	$(".dropdown-sleep-duration").dropdown('set selected', SLEEP_DURATION);
-
 
 	// Progress bar
 	$(".fetch-progress-bar").progress({
@@ -32,19 +31,41 @@ $(document).ready(function() {
 			$(this).progress("remove active");
 			$(this).progress("remove success");
 			$(this).progress("set label", "Sleeping..");
-			// $(this).addClass("disabled");
-		},
-		onActive: function(value, total) {
-			// $(this).removeClass("disabled");
 		},
 		onChange: function(percent, value, total) {
 			$(this).progress("set label", "Fetching feeds {value} / {total}");
 		}
   });
 
+	// Init keywords
+	tagify = new Tagify($(".rss-keywords")[0]);
+	loadKeywords().then(keywords => {
+		tagify.addTags(keywords);
+	});
+
+	// Save keywords when it changes
+	$(".rss-keywords").change(function(event) {
+		saveKeywords(tagify.value);
+	});
+
+	// Remove all keywords
+	$(".rss-keywords-remove-all-btn").click(function(event) {
+		tagify.removeAllTags();
+	});
+
+	// Keywords export
+	$(".rss-keywords-export-btn").click(async function(event) {
+		const keywords = await loadKeywords();
+		let hiddenElement = document.createElement('a');
+		hiddenElement.href = 'data:text/html;charset=utf-8,' + encodeURI(keywords);
+		hiddenElement.target = '_blank';
+		hiddenElement.download = `keywords.txt`;
+		hiddenElement.click();
+	});
+
 	// Menu clicks
 	$(".menu-rss-feeds").click(function() {
-		$(".content-wrapper").load("feeds.html", function() {
+		$(".content-wrapper").load("feeds.html", async function() {
 			loadRssFeeds();
 		});
 	});
@@ -66,10 +87,9 @@ $(document).ready(function() {
 	// Load saved values
 	loadSavedOptions();
 
-	// Remove Item button
-	$(".rss-items").on("click", ".rss-item-delete-btn", function(event) {
-		console.log("click");
-		$(event.target).closest(".item").remove();
+	// Message close
+	$(".content-wrapper").on("click", ".notifications .message .close", function() {
+		$(this).closest('.message').transition('fade');
 	});
 
 	// Start button
@@ -85,54 +105,9 @@ $(document).ready(function() {
 			$(this).html(`<i class="stop icon"></i>Stopping in next cycle..`);
 		}
 	});
-
-
-	// Message close
-	$(".notifications").on("click", ".message .close", function() {
-		$(this).closest('.message').transition('fade');
-	});
-
-
 });
 
-function setStartFlag(value) {
-	chrome.storage.local.set({ "startFlag": value	});
-}
-
-
-
-function loadSavedOptions() {
-	chrome.storage.local.get("numOfArticle", function(result) {
-		const numOfArticle = result["numOfArticle"];
-		NUMBER_OF_RSS_CONTENT_TO_FETCH = numOfArticle;
-		$(".dropdown-number-of-article").dropdown('set selected', NUMBER_OF_RSS_CONTENT_TO_FETCH);
-	}); 
-	chrome.storage.local.get("sleepDuration", function(result) {
-		const sleepDuration = result["sleepDuration"];
-		SLEEP_DURATION = sleepDuration;
-		$(".dropdown-sleep-duration").dropdown('set selected', SLEEP_DURATION);
-	}); 
-}
-// async function loadPreviousRss() {
-// 	const rssList = await loadRssList();
-// 	if (_.isEmpty(rssList)) {
-// 		return;
-// 	}
-// 	rssList.forEach((rss) => {
-// 		presentRss(rss)
-// 	});
-// }
-
-
-
-
-
-
-
-
-
-
-
+// Init Start
 async function startCheckingRSS(firstRun) {
 	while (1) {
 		if (firstRun) {
@@ -163,6 +138,25 @@ async function startCheckingRSS(firstRun) {
 	return;
 }
 
+// Mark start flag
+function setStartFlag(value) {
+	chrome.storage.local.set({ "startFlag": value	});
+}
+
+// Load options saved
+function loadSavedOptions() {
+	chrome.storage.local.get("numOfArticle", function(result) {
+		const numOfArticle = result["numOfArticle"];
+		NUMBER_OF_RSS_CONTENT_TO_FETCH = numOfArticle;
+		$(".dropdown-number-of-article").dropdown('set selected', NUMBER_OF_RSS_CONTENT_TO_FETCH);
+	}); 
+	chrome.storage.local.get("sleepDuration", function(result) {
+		const sleepDuration = result["sleepDuration"];
+		SLEEP_DURATION = sleepDuration;
+		$(".dropdown-sleep-duration").dropdown('set selected', SLEEP_DURATION);
+	}); 
+}
+
 // Return last updated date object if RSS feed is updated. Otherwise return false
 function isUpdated(xml, currentLastUpdated) {
 	const pubDate = xml.find("channel > pubDate");
@@ -182,13 +176,9 @@ function isUpdated(xml, currentLastUpdated) {
 	currentLastUpdatedDate = new Date(currentLastUpdated);
 	newLastUpdatedDate = new Date(lastUpdated);
 
-	// console.log("--------");
-	// console.log(currentLastUpdated);
-	// console.log("current", currentLastUpdatedDate);
-	// console.log("new", newLastUpdatedDate);
-
-	// temp for listing posts
 	return (currentLastUpdatedDate < newLastUpdatedDate) ? newLastUpdatedDate : false;
+
+	// Temp for listing posts
 	// return new Date();
 }
 
@@ -221,7 +211,7 @@ function createHTML(rss, content) {
 	<div class="item">
 		<div class="image">
 			<div class="rss-minago">
-				<div class="ui top attached violet label">${rss.name}</div>
+				<div class="ui top attached large violet label">${rss.name}</div>
 				<div class="ui small blue statistic time-diff">
 					<div class="value time-value"></div>
 					<div class="label time-unit"></div>
@@ -235,7 +225,7 @@ function createHTML(rss, content) {
 					<span class="rss-author">
 						<a class="ui brown label">${content.author}</a>
 					</span>
-					<a class="ui blue label rss-feed-id" href="${rss.url}" target="_blank">${rss.id}</a>
+					<a class="ui blue label rss-feed-id" rss-id="${rss.id}" href="${rss.url}" target="_blank">${shortenFeedID(rss.id)}</a>
 				</span>
 			</div>
 			<div class="meta">
@@ -256,20 +246,12 @@ function createHTML(rss, content) {
 	</div>`;
 }
 
-function isValidDate(date) {
-  return (date instanceof Date && !isNaN(date));
-}
-
 function getUpdatedContents(xml) {
 	const items = xml.find("channel > item");
 	const contents = [];
 
+	// For each article
 	items.each(function(index, eachElement) {
-
-		if (index == NUMBER_OF_RSS_CONTENT_TO_FETCH) { 
-			// break;
-			return false; 
-		}
 
 		// Time formats :()
 		// use in this order: pubDate -> lastBuildDate -> dc:date
@@ -288,7 +270,7 @@ function getUpdatedContents(xml) {
 			publishedAt = null;
 		}
 
-		// Assume all datetime is in KST
+		// Assume all datetime is in KST if timezone is not specified
 		publishedAt = (publishedAt.includes("+")) ? publishedAt : publishedAt + " +0900";
 
 		let pubDate = new Date(publishedAt);
@@ -296,7 +278,8 @@ function getUpdatedContents(xml) {
 			pubDate = new Date("1984-02-28 00:00:00 +0900"); // default
 		}
 
-		const content = {
+		// See if it has the keyword in the title
+		let content = {
 			"title": $(eachElement).find("title").text().trim(),
 			"link": $(eachElement).find("link").text().trim(),
 			"author": $(eachElement).find("author").text().trim() || "Unknown",
@@ -304,10 +287,55 @@ function getUpdatedContents(xml) {
 			"pubDate": pubDate.toString() 
 		};
 
-		contents.push(content);
+		// save only if it has the keyword, this returns title with keyword highlighted
+		const newTitle = hasKeyword(content.title);
+
+    if (newTitle) {
+			content.title = newTitle;
+			contents.push(content);
+		}
+
+		if (contents.length == NUMBER_OF_RSS_CONTENT_TO_FETCH) {
+			// break;
+			return false; 
+		}
 	});
 
 	return contents;
+}
+
+function hasKeyword(title) {
+	let foundKeyword = false;
+	let highLightedTitle;
+	const lowerCasedTitle = title.toLowerCase();
+
+	let keywords = tagify.value;
+	keywords = keywords.map((keyword) => { return keyword.value });
+
+	// if no keyword, then just return title
+	if (_.isEmpty(keywords)) return title;
+
+	for (let keyword of keywords) {
+		const lowerCasedKeyword = keyword.toLowerCase();
+
+		// Case insensitive comparison
+		if (lowerCasedTitle.indexOf(lowerCasedKeyword) >= 0) {
+			const keywordIndex = lowerCasedTitle.indexOf(lowerCasedKeyword);
+
+			highLightedTitle = [
+				title.slice(0, keywordIndex), 
+				"<keyword>", 
+				keyword, 
+				"</keyword>", 
+				title.slice(keywordIndex + keyword.length)
+			].join("");
+
+			foundKeyword = true;
+			break;
+		}
+	};
+
+	return (foundKeyword) ? highLightedTitle : false;
 }
 
 function updateRssStore(rss) {
@@ -323,8 +351,6 @@ function updateRssStore(rss) {
 		chrome.storage.local.set({ rssList: rssList	});
 	});
 }
-
-
 
 function getTimeValueAndUnit(seconds) {
 	if (seconds < 60) {
@@ -349,58 +375,37 @@ function updateAllTimeDiff() {
 	});
 }
 
-// sort function callback
-function sort_li(a, b) {
+// Sort function callback
+function sortLi(a, b) {
 	const a_date_str = $(a).find(".rss-pubdate").text();
 	const b_date_str = $(b).find(".rss-pubdate").text();
-
 	const a_date = new Date(a_date_str);
 	const b_date = new Date(b_date_str);
-
 	const result = (b_date < a_date) ? -1 : 1;
-	// console.log(`comparing ${a_date} vs ${b_date}: Result: ${result}`);
-
 	return result;
-	// return (b < a) ? -1 : 1;
 }
 
 function sortRssList() {
 	const rssList = $(".rss-items .item");
-	const sorted = rssList.sort(sort_li);
+	const sorted = rssList.sort(sortLi);
 	$(".rss-items").empty();
 	$(".rss-items").append(sorted);
 
 	// update the number of items
 	$(".rss-items-amount").html(`<a class="ui circular label">${sorted.length}</a>`);
-
-	// const rssList2 = $(".rss-previous-items .item");
-	// let sorted2 = rssList2.sort(sort_li);
-	// If it reaches 20 items, then remove from oldest
-	// sorted2.splice(20, sorted2.length);
-	// $(".rss-previous-items").empty();
-	// $(".rss-previous-items").append(sorted2);
 }
 
-
-
-
-
-
-
-
 function presentRss(rss, section = "latest") {
-
 	// remove existing feeds
 	const latestItems = $(".rss-items-wrapper .rss-feed-id").closest(".item");
 	latestItems.each(function(index, itemElement) {
-		const rssFeedId = $(itemElement).find(".rss-feed-id").text().trim();
+		const rssFeedId = $(itemElement).find(".rss-feed-id").attr("rss-id");
 		if (rssFeedId == rss.id) {
 			$(itemElement).remove();	
-			// $(".rss-previous-items").prepend(itemElement);
 		}
 	});
 
-	//  append to latest rss lsts
+	// Append to latest rss lists
 	const contents = rss.latestContents;
 
 	$(".rss-items").hide();
@@ -410,18 +415,19 @@ function presentRss(rss, section = "latest") {
 	});
 	$(".rss-items").show();
 
+	// Update time diff
 	updateAllTimeDiff();
 }
 
-
-
-
+// Main function
 async function checkRSS() {
 	return new Promise(async (resolve, reject) => {
-
 		const rssList = await loadRssList();
 		if (_.isEmpty(rssList)) {
-			notifyError({ name: "RSS List Empty", url: "Please add RSSFEED"}, "");
+			notificationManager.show({
+				"header": `Empty RSSList`,
+				"content": `There is no RSSFeed URL in the database. Please add feed urls first.`
+			}, "negative");
 			reject();
 			return;
 		}
@@ -437,62 +443,46 @@ async function checkRSS() {
 					if (result.statusCode == 200) {
 						const xmlDoc = $.parseXML(result.responseText);
 						const xml = $(xmlDoc); // jQuery xml object
-
-						// const newLastUpdated = isUpdated(xml, rss.lastUpdated);
-
-						// if (newLastUpdated) {
-							const contents = getUpdatedContents(xml);
-
-							rss.lastUpdated = (new Date()).toString();
-							// rss.lastUpdated = newLastUpdated.toString();
-							rss.latestContents = contents;
-
-							presentRss(rss);
-							updateRssStore(rss);
-
-							resolve(`${rss.name} fetched`);
-						// } else {
-						// 	resolve("rss NOT updated");
-						// }
+						const contents = getUpdatedContents(xml);
+						rss.lastUpdated = (new Date()).toString();
+						rss.latestContents = contents;
+						presentRss(rss);
+						updateRssStore(rss);
+						resolve(`${rss.name} Fetched`);
 					} else {
 						throw `Invalid Response Code - ${result.statusCode}`;
 					}
 				} catch (error) {
 					console.log(error);
-					notifyError(rss, error);
+					notificationManager.show({
+						"header": `Error fetching RSS Feed: ${rss.name}`,
+						"content": `${error.responseText}`
+					}, "negative", true);
 					reject();
 				} finally {
 					sortRssList();
 					increaseProgressBar();
 				}
 			});
-
 			tasks.push(task);
 		});
 
 		// Loading status
-		// $(".rss-loading-status").html("Loading..");
 		$(".fetch-progress-bar").progress('set total', tasks.length);
 		$(".fetch-progress-bar").progress('set active');
 
 		Promise.allSettled(tasks).then((results) => {
+			console.log("Fetch result");
 			console.log(results);
-
-			// Sort rss list here
-			sortRssList();
-
-			// Remove if archived reaches 100 items (to-do)
-
-			$(".rss-last-run").html(getCurrentDateTime());
-			$(".rss-loading-status").html("Standby");
-
-			console.log("done");
+			sortRssList(); // Sort one more time!
 		}).catch((error) => {
 			// Do nothing
 		}).finally(() => { 
+			$(".rss-last-run").html(getCurrentDateTime());
+			console.log("Sleep");
 			var timeleft = SLEEP_DURATION;
 			var timer =  setInterval(function () {
-				if (timeleft < 0){
+				if (timeleft < 0) {
 					clearInterval(timer);
 					$(".rss-next-run").html('...');
 					resolve();
@@ -501,32 +491,27 @@ async function checkRSS() {
 				$(".rss-next-run").html(`in ${timeleft/1000}s`);
 				timeleft -= 1000;
 			}, 1000);
-			// setTimeout(()=> {
-			// 	resolve();
-			// }, 5000);
 		});
-
-
 	});
-
-}
-
-function notifyError(rss, error) {
-	const message = $(".ui.message");
-	const messageHtml = `
-	<div class="ui negative message">
-		<i class="close icon"></i>
-		<div class="header">${rss.name}</div>
-		<div class="message-body">${rss.url}<br>${error}</div>
-	</div>`;
-	$(".notifications").append(messageHtml);
 }
 
 function increaseProgressBar() {
 	$(".fetch-progress-bar").progress('increment');
 }
 
-function getCurrentDateTime() {
-	const now = new Date(); 
-	return `${now.getFullYear()}/${now.getMonth()+1}/${now.getDate()} ${now.getHours()}:${now.getMinutes()}:${now.getSeconds()}<br>(Local Time)`;	
+function saveKeywords(inputValues) {
+	let keywords = [];
+	inputValues.forEach((each) => {
+		keywords.push(each.value);
+	});
+	chrome.storage.local.set({ keywords: keywords	}, () => { console.log("Keyword updated") });
+}
+
+function loadKeywords() {
+	return new Promise(function (resolve, reject) {
+		chrome.storage.local.get("keywords", function(result) {
+			const keywords = result["keywords"];
+			resolve(keywords);
+		});
+	});
 }

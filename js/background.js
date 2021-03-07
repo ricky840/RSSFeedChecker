@@ -63,6 +63,15 @@ function initStorage() {
 			});
 		}
 	});
+
+  // Keywords 
+  chrome.storage.local.get("keywords", function(result) {
+    if(_.isUndefined(result['keywords']) || _.isEmpty(result['keywords'])) {
+      chrome.storage.local.set({ 
+				keywords: [] 
+			});
+		}
+	});
 }
 
 // Popup Window

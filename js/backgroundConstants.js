@@ -1,11 +1,8 @@
 // Popup Window Id
 var WindowId = null;
-
 var NUMBER_OF_RSS_CONTENT_TO_FETCH = 2;
 var SLEEP_DURATION = 5000;
 
-
-// Rss URls [To-do] : put UI later
 // lastUpdated = date object
 // RSSFEEDS = [
 //   {

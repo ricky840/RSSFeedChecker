@@ -54,7 +54,7 @@
 }
 
 .rss-run-start-btn {
-	margin-bottom: 10px !important;
+	margin-bottom: 15px !important;
 }
 
 .rss-description {
@@ -64,4 +64,23 @@
 .rss-extra-label {
 	width: 100px;
 	text-align: center;
+}
+
+.rss-keywords {
+	width: 100%;
+	margin-bottom: 1em;
+}
+
+keyword {
+	background-color: yellow;
+	box-shadow: 0 4px 8px 0 rgb(0 0 0 / 20%), 0 6px 20px 0 rgb(0 0 0 / 19%);
+}
+
+.file-button-groups {
+	width: 100%;
+	display: inline-block;
+}
+
+.notifications {
+	margin-bottom: 1em;
 }

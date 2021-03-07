@@ -1,22 +1,39 @@
 <div class="rss-feeds-wrapper">
-  <h3 class="ui header">Add a new RSS Feed</h3>
+  <h3 class="ui header">New RSS Feed</h3>
+  <div class="ui segment">
+    <div class="ui form">
+      <div class="inline fields">
+        <div class="three wide field rss-feeds-new-name">
+          <label>Name</label>
+          <input type="text" placeholder="Name">
+        </div>
+        <div class="six wide field rss-feeds-new-url">
+          <label>URL</label>
+          <input type="url" placeholder="RSS Feed URL">
+        </div>
+      </div>
+    </div>
+    <div class="ui button primary rss-feeds-new-btn circular">Add</div>
+  </div>
 
-  <div class="ui form">
-    <div class="inline fields">
-      <div class="three wide field rss-feeds-new-name">
-        <label>Name</label>
-        <input type="text" placeholder="Name">
-      </div>
-      <div class="seven wide field rss-feeds-new-url">
-        <label>URL</label>
-        <input type="url" placeholder="RSS Feed URL">
-      </div>
+  <div class="ui divider"></div>
+
+  <div class="notifications">
+    <div class="ui message hidden">
+      <i class="close icon"></i>
+      <div class="header"></div>
+      <p></p>
     </div>
   </div>
 
-  <div class="ui button primary rss-feeds-new-btn">Add</div>
 
-  <div class="ui divider"></div>
+  <div class="file-button-groups">
+    <div class="ui buttons right floated">
+      <button class="ui button rss-feeds-export-btn">Export</button>
+      <button class="ui button rss-feeds-import-btn">Import</button>
+    </div>
+    <input type="file" id="upload-file" accept=".csv" style="display: none;">
+  </div>
 
   <div class="ui divided items rss-feeds segment"></div>
 </div>
