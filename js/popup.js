@@ -51,6 +51,7 @@ $(document).ready(function() {
 	// Remove all keywords
 	$(".rss-keywords-remove-all-btn").click(function(event) {
 		tagify.removeAllTags();
+		chrome.storage.local.set({ keywords: [] });
 	});
 
 	// Keywords export
@@ -246,6 +247,17 @@ function createHTML(rss, content) {
 	</div>`;
 }
 
+function parseDate(dateString) {
+	// Assume it is in KST if timezone is not specified
+	const momentObj = moment.tz(dateString, "Asia/Seoul");
+	if (momentObj.isValid()) {
+		momentObj.local(); // Change the timezone to SGT
+		return momentObj.toDate(); // return Date object
+	} else {
+		return new Date("1984-02-28 00:00:00 +0900"); // default
+	}
+}
+
 function getUpdatedContents(xml) {
 	const items = xml.find("channel > item");
 	const contents = [];
@@ -259,21 +271,14 @@ function getUpdatedContents(xml) {
 		let lastBuild = $(eachElement).find("lastBuildDate").text().trim();
 		let dc = $(eachElement).find("dc\\:date").text().trim();
 
-		let publishedAt;
-		if (!_.isEmpty(dc)) {
-			publishedAt = dc;	
-		} else if (!_.isEmpty(lastBuild)) {
-			publishedAt = lastBuild;
-		} else if (!_.isEmpty(published)) {
-			publishedAt = published;
-		} else {
-			publishedAt = null;
-		}
+		let publishedAt = null;
+		if (!_.isEmpty(dc)) publishedAt = dc;	
+		if (!_.isEmpty(lastBuild)) publishedAt = lastBuild;
+		if (!_.isEmpty(published)) publishedAt = published;
 
-		// Assume all datetime is in KST if timezone is not specified
-		publishedAt = (publishedAt.includes("+")) ? publishedAt : publishedAt + " +0900";
+		let pubDate = parseDate(publishedAt);
 
-		let pubDate = new Date(publishedAt);
+		// Just to be safe
 		if (!isValidDate(pubDate)) {
 			pubDate = new Date("1984-02-28 00:00:00 +0900"); // default
 		}

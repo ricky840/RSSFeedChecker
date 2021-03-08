@@ -1,6 +1,6 @@
 {
   "name": "RSSFeed",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "To the moon!",
   "manifest_version": 2,
   "background": {
