@@ -2,6 +2,8 @@
 var WindowId = null;
 var NUMBER_OF_RSS_CONTENT_TO_FETCH = 2;
 var SLEEP_DURATION = 5000;
+var TIMEOUT = 3000;
+var FILTER_MODE = "hightlight";
 
 // lastUpdated = date object
 // RSSFEEDS = [

@@ -72,6 +72,24 @@ function initStorage() {
 			});
 		}
 	});
+
+  // Timeout
+  chrome.storage.local.get("timeout", function(result) {
+    if(_.isUndefined(result['timeout']) || _.isEmpty(result['timeout'])) {
+      chrome.storage.local.set({ 
+				timeout: TIMEOUT
+			});
+		}
+	});
+
+  // Filter mode
+  chrome.storage.local.get("filterMode", function(result) {
+    if(_.isUndefined(result['filterMode']) || _.isEmpty(result['filterMode'])) {
+      chrome.storage.local.set({ 
+        filterMode: FILTER_MODE
+      });
+    }
+  });
 }
 
 // Popup Window

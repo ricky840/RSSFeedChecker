@@ -51,7 +51,14 @@ $(".content-wrapper").on("click", ".rss-feed-delete-btn", async function(event) 
   });
   chrome.storage.local.set({ "rssList" : rssList }, function() { 
     $(event.target).closest(".item").remove();
-  })
+  });
+});
+
+// Delete all
+$(".content-wrapper").on("click", ".rss-feeds-delete-all-btn", function() {
+  chrome.storage.local.set({ "rssList" : [] }, function() { 
+    $(".rss-feeds-wrapper").find('.rss-feeds').empty(); 
+  });
 });
 
 $(".content-wrapper").on("click", ".rss-feeds-new-btn", async function() {

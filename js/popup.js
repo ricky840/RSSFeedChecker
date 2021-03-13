@@ -4,6 +4,8 @@ $(".version").html(`v${chrome.runtime.getManifest().version}`);
 const background = chrome.extension.getBackgroundPage();
 var NUMBER_OF_RSS_CONTENT_TO_FETCH =  background.NUMBER_OF_RSS_CONTENT_TO_FETCH;
 var SLEEP_DURATION = background.SLEEP_DURATION;
+var TIMEOUT = background.TIMEOUT;
+var FILTER_MODE = background.FILTER_MODE;
 var tagify; // For keywords
 
 $(document).ready(function() {
@@ -12,17 +14,33 @@ $(document).ready(function() {
 	$(".dropdown-number-of-article").dropdown({
     onChange: function(value, text, selectedItem) {
 			NUMBER_OF_RSS_CONTENT_TO_FETCH = value;
+			chrome.storage.local.set({ numOfArticle: NUMBER_OF_RSS_CONTENT_TO_FETCH });
     }
 	});
-	$(".dropdown-number-of-article").dropdown('set selected', NUMBER_OF_RSS_CONTENT_TO_FETCH);
 
 	// Dropdown: Sleep duration
 	$(".dropdown-sleep-duration").dropdown({
     onChange: function(value, text, selectedItem) {
 			SLEEP_DURATION = value;
+			chrome.storage.local.set({ sleepDuration: SLEEP_DURATION });
     }
 	});
-	$(".dropdown-sleep-duration").dropdown('set selected', SLEEP_DURATION);
+
+	// Dropdown: Timeout 
+	$(".dropdown-timeout").dropdown({
+    onChange: function(value, text, selectedItem) {
+			TIMEOUT = value;
+			chrome.storage.local.set({ timeout: TIMEOUT });
+    }
+	});
+
+	// Dropdown: Keyword Filter
+	$(".dropdown-filter").dropdown({
+		onChange: function(value, text, selectedItem) {
+			FILTER_MODE = value;
+			chrome.storage.local.set({ filterMode: FILTER_MODE });
+		}
+	});
 
 	// Progress bar
 	$(".fetch-progress-bar").progress({
@@ -68,20 +86,6 @@ $(document).ready(function() {
 	$(".menu-rss-feeds").click(function() {
 		$(".content-wrapper").load("feeds.html", async function() {
 			loadRssFeeds();
-		});
-	});
-
-	// Save button
-	$(".save-btn").click(function() {
-		const numOfArticle = $(".dropdown-number-of-article").dropdown('get value');
-		const sleepDuration = $(".dropdown-sleep-duration").dropdown('get value');
-		chrome.storage.local.set({ numOfArticle: numOfArticle }, () => {
-			chrome.storage.local.set({ sleepDuration: sleepDuration }, () => {
-				$(this).html("Saved!");
-				setTimeout(() => {
-					$(this).html("Save");
-				}, 1000);
-			});
 		});
 	});
 
@@ -156,6 +160,16 @@ function loadSavedOptions() {
 		SLEEP_DURATION = sleepDuration;
 		$(".dropdown-sleep-duration").dropdown('set selected', SLEEP_DURATION);
 	}); 
+	chrome.storage.local.get("timeout", function(result) {
+		const timeout = result["timeout"];
+		TIMEOUT = timeout;
+		$(".dropdown-timeout").dropdown('set selected', TIMEOUT);
+	}); 
+	chrome.storage.local.get("filterMode", function(result) {
+		const filterMode = result["filterMode"];
+		FILTER_MODE = filterMode;
+		$(".dropdown-filter").dropdown('set selected', FILTER_MODE);
+	}); 
 }
 
 // Return last updated date object if RSS feed is updated. Otherwise return false
@@ -207,12 +221,17 @@ function getTimeDiffFromNow(timeStr) {
 	return Math.floor((now.getTime() - timeDate.getTime()) / 1000);
 }
 
+function removeTags(txt){
+	var rex = /(<[^>]+>)/ig;
+	return txt.replace(rex , "");
+}
+
 function createHTML(rss, content) {
 	return `
 	<div class="item">
 		<div class="image">
 			<div class="rss-minago">
-				<div class="ui top attached large violet label">${rss.name}</div>
+				<div class="ui top attached violet label">${rss.name}</div>
 				<div class="ui small red statistic time-diff">
 					<div class="value time-value"></div>
 					<div class="label time-unit"></div>
@@ -231,17 +250,19 @@ function createHTML(rss, content) {
 			</div>
 			<div class="meta">
 				<span>
-					<a class="ui grey label rss-extra-label">Published</a>
+					<a class="ui grey label basic rss-extra-label">Published</a>
 					<span class="rss-pubdate">${content.pubDate}</span>
 				</span>
 			</div>
-			<div class="description rss-description">${content.description}</div>
+			<div class="description rss-description">${removeTags(content.description).trimToLength(100)}</div>
 			<div class="extra">
 				<!-- <div class="ui right floated small basic button rss-item-delete-btn">Delete</div> -->
+				<!-- 
 				<span>
 					<a class="ui label basic rss-extra-label">Last check</a>
 					<span class="rss-lastcheck">${rss.lastUpdated}</span>
 				</span>
+				-->
 			</div>
 		</div>
 	</div>`;
@@ -253,25 +274,38 @@ function parseDate(dateString) {
 	if (momentObj.isValid()) {
 		momentObj.local(); // Change the timezone to SGT
 		return momentObj.toDate(); // return Date object
-	} else {
-		return new Date("1984-02-28 00:00:00 +0900"); // default
-	}
+	} 
+
+	// Try again for this format 20210311050000+0900 머니투데이
+	const momentObj2 = moment.tz(dateString, 'YYYYMMDDHHmmss', "Asia/Seoul");
+	if (momentObj2.isValid()) {
+		momentObj2.local(); // Change the timezone to SGT
+		return momentObj2.toDate(); // return Date object
+	} 
+
+	return new Date("1984-02-28 00:00:00 +0900"); // default
 }
 
 function getUpdatedContents(xml) {
 	const items = xml.find("channel > item");
+	// const channelPubDateObj = xml.find("channel > pubDate");
 	const contents = [];
 
 	// For each article
 	items.each(function(index, eachElement) {
+		// Get main pubDate
 
 		// Time formats :()
 		// use in this order: pubDate -> lastBuildDate -> dc:date
-		let published = $(eachElement).find("pubDate").text().trim();
-		let lastBuild = $(eachElement).find("lastBuildDate").text().trim();
-		let dc = $(eachElement).find("dc\\:date").text().trim();
+		// There is a case where multiple pubDate exists in one item (메디컬월드뉴스)
+		// For that case, use the last one
+		let published = $(eachElement).find("pubDate").last().text().trim();
+		let lastBuild = $(eachElement).find("lastBuildDate").last().text().trim();
+		let dc = $(eachElement).find("dc\\:date").last().text().trim();
+		let ns2_published = $(eachElement).find("ns2\\:published").last().text().trim();
 
 		let publishedAt = null;
+		if (!_.isEmpty(ns2_published)) publishedAt = ns2_published;	
 		if (!_.isEmpty(dc)) publishedAt = dc;	
 		if (!_.isEmpty(lastBuild)) publishedAt = lastBuild;
 		if (!_.isEmpty(published)) publishedAt = published;
@@ -288,15 +322,17 @@ function getUpdatedContents(xml) {
 			"title": $(eachElement).find("title").text().trim(),
 			"link": $(eachElement).find("link").text().trim(),
 			"author": $(eachElement).find("author").text().trim() || "Unknown",
-			"description": $(eachElement).find("description").text().trim() || "Unknown",
+			"description": $(eachElement).find("description").text().trim() || "No Description",
 			"pubDate": pubDate.toString() 
 		};
 
-		// save only if it has the keyword, this returns title with keyword highlighted
-		const newTitle = hasKeyword(content.title);
+		// This highlights keyword
+		const result = hasKeyword(content.title);
+		content.title = result.newTitle;
 
-    if (newTitle) {
-			content.title = newTitle;
+		if (FILTER_MODE == "keyword" && !result.hasKeyword) {
+			return false;
+		} else {
 			contents.push(content);
 		}
 
@@ -311,14 +347,12 @@ function getUpdatedContents(xml) {
 
 function hasKeyword(title) {
 	let foundKeyword = false;
+	let newTitle;
 	let highLightedTitle;
 	const lowerCasedTitle = title.toLowerCase();
 
 	let keywords = tagify.value;
 	keywords = keywords.map((keyword) => { return keyword.value });
-
-	// if no keyword, then just return title
-	if (_.isEmpty(keywords)) return title;
 
 	for (let keyword of keywords) {
 		const lowerCasedKeyword = keyword.toLowerCase();
@@ -340,7 +374,10 @@ function hasKeyword(title) {
 		}
 	};
 
-	return (foundKeyword) ? highLightedTitle : false;
+	return {
+		"hasKeyword": foundKeyword,
+		"newTitle": (foundKeyword) ? highLightedTitle : title
+	};
 }
 
 function updateRssStore(rss) {
@@ -362,8 +399,10 @@ function getTimeValueAndUnit(seconds) {
 		return { value: seconds, unit: "Seconds ago" };
 	} else if (seconds >= 60 && seconds < 3600) {
 		return { value: Math.floor(seconds/60), unit: "Minutes ago" };
-	} else if (seconds >= 3600) {
+	} else if (seconds >= 3600 && seconds < 86400) {
 		return { value: Math.floor(seconds/3600), unit: "Hours ago" };
+	} else if (seconds >= 86400) {
+		return { value: Math.floor(seconds/86400), unit: "Days ago" };
 	} else {
 		return { value: seconds, unit: "Seconds ago" };
 	}
@@ -424,6 +463,53 @@ function presentRss(rss, section = "latest") {
 	updateAllTimeDiff();
 }
 
+function updateLastRunStatus(results) {
+	let [total, success, fail] = [0, 0, 0];
+	let errorMessage = "";
+
+	results.forEach((result) => {
+		total += 1;
+		if (result.status == "fulfilled") success += 1;
+		if (result.status == "rejected") {
+			fail += 1;
+			errorMessage += `
+			<div class="rss-last-run-error-each">
+				<span class="rss-last-run-error-content">
+				- ${result.reason.rssName}: ${result.reason.errorMsg}
+				</span>
+			</div>
+			`;
+		}
+	});
+
+	$(".rss-last-run-total").html(total);
+	$(".rss-last-run-success").html(success);
+	$(".rss-last-run-fail").html(fail);
+
+	// If there was no error, clear the notification
+	if (fail == 0) {
+		notificationManager.clear();
+	} else {
+		notificationManager.show({
+			"header": `Error fetching RSS Feed`,
+			"content": errorMessage
+		}, "negative");
+	}
+}
+
+// Timeout promise race
+const promiseTimeout = function(ms, promise, rssName) {
+  // Create a promise that rejects in <ms> milliseconds
+  let timeout = new Promise((resolve, reject) => {
+    let id = setTimeout(() => {
+      clearTimeout(id);
+      reject({ "rssName": rssName, "errorMsg": "Timeout" });
+    }, ms);
+  });
+  // Returns a race between our timeout and the passed in promise
+  return Promise.race([promise, timeout]);
+}
+
 // Main function
 async function checkRSS() {
 	return new Promise(async (resolve, reject) => {
@@ -443,7 +529,8 @@ async function checkRSS() {
 			const task = new Promise(async (resolve, reject) => {
 				const request = { url: rss.url };
 				try {
-					let result = await http.getRequest(request);
+					let httpPromise = http.getRequest(request);
+					let result = await promiseTimeout(TIMEOUT, httpPromise, rss.name);
 
 					if (result.statusCode == 200) {
 						const xmlDoc = $.parseXML(result.responseText);
@@ -451,21 +538,18 @@ async function checkRSS() {
 						const contents = getUpdatedContents(xml);
 						rss.lastUpdated = (new Date()).toString();
 						rss.latestContents = contents;
-						presentRss(rss);
+						// presentRss(rss);
 						updateRssStore(rss);
-						resolve(`${rss.name} Fetched`);
+						resolve(rss);
 					} else {
+						console.log("fff");
 						throw `Invalid Response Code - ${result.statusCode}`;
 					}
 				} catch (error) {
 					console.log(error);
-					notificationManager.show({
-						"header": `Error fetching RSS Feed: ${rss.name} at ${getCurrentDateTime()}`,
-						"content": `${error.responseText}`
-					}, "negative");
-					reject();
+					reject(error);
 				} finally {
-					sortRssList();
+					// sortRssList();
 					increaseProgressBar();
 				}
 			});
@@ -474,15 +558,21 @@ async function checkRSS() {
 
 		// Loading status
 		$(".fetch-progress-bar").progress('set total', tasks.length);
-		$(".fetch-progress-bar").progress('set active');
+		// $(".fetch-progress-bar").progress('set active');
 
 		Promise.allSettled(tasks).then((results) => {
 			console.log("Fetch result");
 			console.log(results);
-			sortRssList(); // Sort one more time!
+			updateLastRunStatus(results);
+			results.forEach((rss) => {
+				presentRss(rss.value);
+			});
 		}).catch((error) => {
 			// Do nothing
 		}).finally(() => { 
+			console.log("Sorting");
+			sortRssList(); // Sort rss
+
 			$(".rss-last-run").html(getCurrentDateTime());
 			console.log("Sleep");
 			var timeleft = SLEEP_DURATION;

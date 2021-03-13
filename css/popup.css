@@ -58,9 +58,9 @@
 }
 
 .rss-description {
-	font-size: 1.1em !important;
+	font-size: 1em !important;
 	overflow: auto;
-	max-height: 6em;
+	max-height: 5em;
 	max-width: 100%;
 }
 
@@ -77,6 +77,7 @@
 keyword {
 	background-color: yellow;
 	box-shadow: 0 4px 8px 0 rgb(0 0 0 / 20%), 0 6px 20px 0 rgb(0 0 0 / 19%);
+	font-size: 1.2em;
 }
 
 .file-button-groups {
@@ -86,4 +87,8 @@ keyword {
 
 .notifications {
 	margin-bottom: 1em;
+}
+
+.rss-last-run-status .label {
+	margin-bottom: 0.5em;
 }
